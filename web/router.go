@@ -27,6 +27,12 @@ func CreateRouter() *mux.Router {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		var user User
 		json.NewDecoder(r.Body).Decode(&user)
+
+		if user.FirstName == "" || user.LastName == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
 		user.ID = fmt.Sprintf("%d", len(users)+1)
 		users = append(users, user)
 		w.WriteHeader(http.StatusCreated)

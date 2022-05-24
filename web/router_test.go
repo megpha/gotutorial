@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-playground/assert/v2"
 )
 
 func TestUsersRoute(t *testing.T) {
@@ -13,25 +15,31 @@ func TestUsersRoute(t *testing.T) {
 	response := httptest.NewRecorder()
 	CreateRouter().ServeHTTP(response, req)
 
-	if http.StatusOK != response.Code {
-		t.Errorf("Invalid response code")
-	}
+	assert.Equal(t, http.StatusOK, response.Code)
 }
 
 func TestAddUser(t *testing.T) {
-	user := User{FirstName: "adding", LastName: "user"}
-	body, _ := json.Marshal(user)
-	req, _ := http.NewRequest("POST", "/users", bytes.NewReader(body))
-	response := httptest.NewRecorder()
-	CreateRouter().ServeHTTP(response, req)
-
-	if http.StatusCreated != response.Code {
-		t.Errorf("Invalid response code")
+	type TestCase struct {
+		TestUser User
+		Code     int
 	}
-	var createdUser User
-	json.NewDecoder(response.Body).Decode(&createdUser)
-	if createdUser.ID == "" {
-		t.Errorf("ID is missing")
+	testcases := []TestCase{
+		TestCase{TestUser: User{FirstName: "John", LastName: ""}, Code: http.StatusBadRequest},
+		TestCase{TestUser: User{FirstName: "", LastName: "Doe"}, Code: http.StatusBadRequest},
+		TestCase{TestUser: User{FirstName: "", LastName: ""}, Code: http.StatusBadRequest},
+		TestCase{TestUser: User{FirstName: "John", LastName: "Doe"}, Code: http.StatusCreated},
+	}
+	for _, ts := range testcases {
+		body, _ := json.Marshal(ts.TestUser)
+		req, _ := http.NewRequest("POST", "/users", bytes.NewReader(body))
+		response := httptest.NewRecorder()
+		CreateRouter().ServeHTTP(response, req)
+		assert.Equal(t, ts.Code, response.Code)
+		if ts.Code == http.StatusCreated {
+			var createdUser User
+			json.NewDecoder(response.Body).Decode(&createdUser)
+			assert.NotEqual(t, createdUser.ID, "")
+		}
 	}
 }
 
@@ -40,17 +48,17 @@ func TestUserRoute(t *testing.T) {
 	response := httptest.NewRecorder()
 	CreateRouter().ServeHTTP(response, req)
 
-	if http.StatusOK != response.Code {
-		t.Errorf("Invalid response code")
-	}
+	assert.Equal(t, http.StatusOK, response.Code)
+
+	var showUser User
+	json.NewDecoder(response.Body).Decode(&showUser)
+
+	assert.Equal(t, User{FirstName: "john", LastName: "doe", ID: "1"}, showUser)
 }
 
 func TestUserNotFoundRoute(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/users/2", nil)
 	response := httptest.NewRecorder()
 	CreateRouter().ServeHTTP(response, req)
-
-	if http.StatusNotFound != response.Code {
-		t.Errorf("Invalid response code")
-	}
+	assert.Equal(t, http.StatusNotFound, response.Code)
 }
