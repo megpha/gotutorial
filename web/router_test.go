@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-playground/assert/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUsersRoute(t *testing.T) {
@@ -44,20 +44,14 @@ func TestAddUser(t *testing.T) {
 }
 
 func TestValidUser(t *testing.T) {
-	type TestCase struct {
-		TestUser User
-		Valid    bool
-	}
-	testcases := []TestCase{
-		TestCase{TestUser: User{FirstName: "John", LastName: ""}, Valid: false},
-		TestCase{TestUser: User{FirstName: "", LastName: "Doe"}, Valid: false},
-		TestCase{TestUser: User{FirstName: "", LastName: ""}, Valid: false},
+	testcases := []User{
+		User{FirstName: "John", LastName: ""},
+		User{FirstName: "", LastName: "Doe"},
+		User{FirstName: "", LastName: ""},
 	}
 
 	for _, ts := range testcases {
-		if error := ts.TestUser.Validate(); error == nil {
-			t.Errorf("expected error")
-		}
+		assert.NotNil(t, ts.Validate())
 	}
 }
 
