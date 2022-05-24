@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -12,6 +13,17 @@ type User struct {
 	FirstName string `json:"firstname"`
 	LastName  string `json:"lastname"`
 	ID        string `json:"id"`
+}
+
+func (u User) Validate() error {
+	if u.FirstName == "" {
+		return errors.New("Empty First Name")
+	}
+	if u.LastName == "" {
+		return errors.New("Empty Last Name")
+	}
+
+	return nil
 }
 
 func CreateRouter() *mux.Router {
@@ -28,7 +40,7 @@ func CreateRouter() *mux.Router {
 		var user User
 		json.NewDecoder(r.Body).Decode(&user)
 
-		if user.FirstName == "" || user.LastName == "" {
+		if err := user.Validate(); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

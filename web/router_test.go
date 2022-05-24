@@ -43,6 +43,24 @@ func TestAddUser(t *testing.T) {
 	}
 }
 
+func TestValidUser(t *testing.T) {
+	type TestCase struct {
+		TestUser User
+		Valid    bool
+	}
+	testcases := []TestCase{
+		TestCase{TestUser: User{FirstName: "John", LastName: ""}, Valid: false},
+		TestCase{TestUser: User{FirstName: "", LastName: "Doe"}, Valid: false},
+		TestCase{TestUser: User{FirstName: "", LastName: ""}, Valid: false},
+	}
+
+	for _, ts := range testcases {
+		if error := ts.TestUser.Validate(); error == nil {
+			t.Errorf("expected error")
+		}
+	}
+}
+
 func TestUserRoute(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/users/1", nil)
 	response := httptest.NewRecorder()
