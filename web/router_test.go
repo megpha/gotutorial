@@ -69,8 +69,15 @@ func TestUserRoute(t *testing.T) {
 }
 
 func TestUserNotFoundRoute(t *testing.T) {
-	req, _ := http.NewRequest("GET", "/users/2", nil)
+	req, _ := http.NewRequest("GET", "/users/5", nil)
 	response := httptest.NewRecorder()
 	CreateRouter().ServeHTTP(response, req)
 	assert.Equal(t, http.StatusNotFound, response.Code)
+}
+
+func TestAddUserData(t *testing.T) {
+	userStore := UserStore{Users: []User{}}
+	userStore, err := userStore.Add(User{FirstName: "John", LastName: "Doe"})
+	assert.Equal(t, 1, len(userStore.Users))
+	assert.Nil(t, err)
 }
