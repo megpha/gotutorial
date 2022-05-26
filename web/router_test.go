@@ -7,10 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/megpha/website/data"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUsersRoute(t *testing.T) {
+func TestAllUsers(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/users", nil)
 	response := httptest.NewRecorder()
 	CreateRouter().ServeHTTP(response, req)
@@ -18,66 +19,58 @@ func TestUsersRoute(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.Code)
 }
 
-func TestAddUser(t *testing.T) {
-	type TestCase struct {
-		TestUser User
-		Code     int
-	}
-	testcases := []TestCase{
-		TestCase{TestUser: User{FirstName: "John", LastName: ""}, Code: http.StatusBadRequest},
-		TestCase{TestUser: User{FirstName: "", LastName: "Doe"}, Code: http.StatusBadRequest},
-		TestCase{TestUser: User{FirstName: "", LastName: ""}, Code: http.StatusBadRequest},
-		TestCase{TestUser: User{FirstName: "John", LastName: "Doe"}, Code: http.StatusCreated},
-	}
-	for _, ts := range testcases {
-		body, _ := json.Marshal(ts.TestUser)
-		req, _ := http.NewRequest("POST", "/users", bytes.NewReader(body))
-		response := httptest.NewRecorder()
-		CreateRouter().ServeHTTP(response, req)
-		assert.Equal(t, ts.Code, response.Code)
-		if ts.Code == http.StatusCreated {
-			var createdUser User
-			json.NewDecoder(response.Body).Decode(&createdUser)
-			assert.NotEqual(t, createdUser.ID, "")
-		}
-	}
+func TestInvalidUserAdd(t *testing.T) {
+	body, _ := json.Marshal(data.User{FirstName: "John", LastName: ""})
+	req, _ := http.NewRequest("POST", "/users", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+	CreateRouter().ServeHTTP(response, req)
+	assert.Equal(t, http.StatusBadRequest, response.Code)
+	assert.Equal(t, "application/json; charset=utf-8", response.Header().Get("Content-Type"))
 }
 
-func TestValidUser(t *testing.T) {
-	testcases := []User{
-		User{FirstName: "John", LastName: ""},
-		User{FirstName: "", LastName: "Doe"},
-		User{FirstName: "", LastName: ""},
-	}
-
-	for _, ts := range testcases {
-		assert.NotNil(t, ts.Validate())
-	}
+func TestValidUserAdd(t *testing.T) {
+	body, _ := json.Marshal(data.User{FirstName: "John", LastName: "Doe"})
+	req, _ := http.NewRequest("POST", "/users", bytes.NewReader(body))
+	response := httptest.NewRecorder()
+	CreateRouter().ServeHTTP(response, req)
+	assert.Equal(t, http.StatusCreated, response.Code)
+	assert.Equal(t, "application/json; charset=utf-8", response.Header().Get("Content-Type"))
 }
 
-func TestUserRoute(t *testing.T) {
+func TestFindUser(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/users/1", nil)
 	response := httptest.NewRecorder()
 	CreateRouter().ServeHTTP(response, req)
 
 	assert.Equal(t, http.StatusOK, response.Code)
 
-	var showUser User
+	var showUser data.User
 	json.NewDecoder(response.Body).Decode(&showUser)
 
-	assert.Equal(t, User{FirstName: "john", LastName: "doe", ID: "1"}, showUser)
+	assert.Equal(t, data.User{FirstName: "john", LastName: "doe", ID: "1"}, showUser)
+	assert.Equal(t, "application/json; charset=utf-8", response.Header().Get("Content-Type"))
 }
 
-func TestUserNotFoundRoute(t *testing.T) {
+func TestNotFoundRoute(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/users/5", nil)
 	response := httptest.NewRecorder()
 	CreateRouter().ServeHTTP(response, req)
 	assert.Equal(t, http.StatusNotFound, response.Code)
+	assert.Equal(t, "application/json; charset=utf-8", response.Header().Get("Content-Type"))
 }
 
-func TestAddUserData(t *testing.T) {
-	userStore := UserStore{Users: []User{}}
-	userStore, err := userStore.Add(User{FirstName: "John", LastName: "Doe"})
-	assert.Equal(t, 1, len(userStore.Users))
-	assert.Nil(t, err)
+func TestRemoveUnknownUser(t *testing.T) {
+	req, _ := http.NewRequest("DELETE", "/users/5", nil)
+	response := httptest.NewRecorder()
+	CreateRouter().ServeHTTP(response, req)
+	assert.Equal(t, http.StatusNotFound, response.Code)
+	assert.Equal(t, "application/json; charset=utf-8", response.Header().Get("Content-Type"))
+}
+
+func TestRemoveKnownUser(t *testing.T) {
+	req, _ := http.NewRequest("DELETE", "/users/1", nil)
+	response := httptest.NewRecorder()
+	CreateRouter().ServeHTTP(response, req)
+	assert.Equal(t, http.StatusOK, response.Code)
+	assert.Equal(t, "application/json; charset=utf-8", response.Header().Get("Content-Type"))
 }
